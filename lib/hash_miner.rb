@@ -1,8 +1,14 @@
 # frozen_string_literal: true
 
 require_relative 'hash_miner/version'
+require_relative 'hash_miner/hash'
+require_relative 'hash_miner/errors'
+
+require 'pry'
+require 'logger'
 
 module HashMiner
   class Error < StandardError; end
-  # Your code goes here...
+
+  LOG = Logger.new($stdout)
 end

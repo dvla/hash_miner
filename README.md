@@ -2,7 +2,7 @@
 
 Ever experienced the pain of working with deeply nested hashes in Ruby? 
 
-HashMiner expands the base Hash class in Ruby to provide helpful methods to traverse your Hash Object regardless of complexity.
+HashMiner expands the base Hash class in Ruby to provide helpful methods to traverse and manipulate your Hash Object regardless of complexity.
 
 The following gives a flavour of how HashMiner can help solve headaches when working with complex hashes:
 
@@ -42,13 +42,94 @@ If bundler is not being used to manage dependencies, install the gem by executin
 
 ## Usage
 
+- HashMiner methods have no side-effects
+
 ### Methods available
 #### deep_update
+
+- Updates all values that match the given key
+
+```ruby
+require 'hash_miner'
+
+nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
+
+nasty_hash.deep_update(key: :nasty, value: :complicated_hash) # => {:my=>{:pretty=>[{:nasty=>:complicated_hash}, nil], :is=>{:pretty=>:nasty}}}
+
+# Errors on uniqueness
+nasty_hash.deep_update(key: :pretty, value: :super_duper) # => throws KeyNotUniqueError
+nasty_hash.deep_update(key: :pretty, value: :super_duper, error_on_uniqueness: false) # => {:my=>{:pretty=>:super_duper, :is=>{:pretty=>:super_duper}}}
+
+# Errors on missing
+nasty_hash.deep_update(key: :huh, value: :where_am_i) # => throws KeyNotFoundError
+nasty_hash.deep_update(key: :pretty, value: :super_duper, error_on_missing: false) # => {:my=>{:pretty=>[{:nasty=>:hash}, nil], :is=>{:pretty=>:nasty}}, :huh=>:where_am_i}
+
+```
+---
 #### deep_remove
+
+- Removes all values that match the given key
+
+```ruby
+require 'hash_miner'
+
+nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
+
+nasty_hash.deep_remove(key: :nasty) # => {:my=>{:pretty=>[{}, nil], :is=>{:pretty=>:nasty}}}
+
+# Errors on uniqueness
+nasty_hash.deep_remove(key: :pretty) # => throws KeyNotUniqueError
+nasty_hash.deep_remove(key: :pretty, error_on_uniqueness: false) # => {:my=>{:is=>{}}}
+```
+---
 #### deep_find
+
+- Returns all values that match the given key
+
+```ruby
+require 'hash_miner'
+
+nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
+
+nasty_hash.deep_find(key: :nasty) # => [:hash]
+nasty_hash.deep_find(key: :pretty) # => [{:nasty=>:hash}, nil, :nasty]
+```
+---
 #### deep_compact
+
+- Removes nil and empty values from Hash
+- Will not remove values within an Array i.e `[nil, {}]` will remain
+```ruby
+require 'hash_miner'
+
+nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: {}, nasty: nil } } }
+
+nasty_hash.deep_compact # => {:my=>{:pretty=>[{:nasty=>:hash}, nil]}}
+```
+---
 #### deep_count
+
+- Returns a count for the given key
+```ruby
+require 'hash_miner'
+
+nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
+
+nasty_hash.deep_count(key: :pretty) # => 2 
+nasty_hash.deep_count(key: :nasty) # => 1 
+```
+---
 #### deep_contains?
+
+- Returns `true|false` depending on if given is found
+```ruby
+require 'hash_miner'
+
+nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
+
+nasty_hash.deep_contains?(key: :nasty) # => true
+nasty_hash.deep_contains?(key: :super_nasty) # => false
+```
 
 ## Development
 
