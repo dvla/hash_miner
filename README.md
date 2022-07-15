@@ -64,6 +64,9 @@ nasty_hash.deep_update(key: :pretty, value: :super_duper, error_on_uniqueness: f
 nasty_hash.deep_update(key: :huh, value: :where_am_i) # => throws KeyNotFoundError
 nasty_hash.deep_update(key: :pretty, value: :super_duper, error_on_missing: false) # => {:my=>{:pretty=>[{:nasty=>:hash}, nil], :is=>{:pretty=>:nasty}}, :huh=>:where_am_i}
 
+# Pass through parent flag for scoping
+nasty_hash.deep_update(key: :pretty, value: :super_duper, error_on_uniqueness: false, parent: :is) # => {:my=>{:pretty=>[{:nasty=>:hash}, nil], :is=>{:pretty=>:super_duper}}}
+
 ```
 ---
 #### deep_remove
@@ -80,6 +83,9 @@ nasty_hash.deep_remove(key: :nasty) # => {:my=>{:pretty=>[{}, nil], :is=>{:prett
 # Errors on uniqueness
 nasty_hash.deep_remove(key: :pretty) # => throws KeyNotUniqueError
 nasty_hash.deep_remove(key: :pretty, error_on_uniqueness: false) # => {:my=>{:is=>{}}}
+
+# Pass through parent flag for scoping
+nasty_hash.deep_remove(key: :pretty, error_on_uniqueness: false, parent: :is) # => { my: { pretty: [{ nasty: :hash }, nil], is: { } } }
 ```
 ---
 #### deep_find
@@ -93,6 +99,9 @@ nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
 
 nasty_hash.deep_find(key: :nasty) # => [:hash]
 nasty_hash.deep_find(key: :pretty) # => [{:nasty=>:hash}, nil, :nasty]
+
+# Pass through parent flag for scoping
+nasty_hash.deep_find(key: :pretty, parent: :is) # => [:nasty]
 ```
 ---
 #### deep_compact
@@ -129,6 +138,26 @@ nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
 
 nasty_hash.deep_contains?(key: :nasty) # => true
 nasty_hash.deep_contains?(key: :super_nasty) # => false
+```
+
+### Scoping
+HashMiner supports partial updating of a hash based on the parent key.
+
+Supported methods: 
+- `deep_find`
+- `deep_update`
+- `deep_remove`
+
+Pass through a `parent` key to any of these methods as either an `Array`|`String`|`Symbol` 
+
+```ruby
+require 'hash_miner'
+
+nasty_hash = { my: { pretty: [{ nasty: :hash }, nil], is: { pretty: :nasty } } }
+
+nasty_hash.deep_find(key: :pretty, parent: :is) # => [:nasty]
+nasty_hash.deep_find(key: :pretty, parent: [:is]) # => [:nasty]
+nasty_hash.deep_find(key: :pretty, parent: [:my, :is]) # => [{:nasty=>:hash}, nil, :nasty]
 ```
 
 ## Development
