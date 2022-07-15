@@ -50,21 +50,14 @@ class Hash
   #
   # @param key [String, Symbol]
   # @param hash [Hash]
+  # @param parent [String, Symbol, Array]
   #
   # @return [Array] with all values that match the key
-  def deep_find(key:, hash: self)
+  def deep_find(key:, hash: self, parent: nil)
     return nil unless hash.is_a? Hash
     return nil unless hash.deep_contains?(key: key)
 
-    hash.filter_map do |k, v|
-      if k.eql? key
-        v
-      elsif v.is_a?(Hash)
-        deep_find(hash: v, key: key)
-      elsif v.is_a?(Array)
-        [v.filter_map { |i| deep_find(hash: i, key: key) }]
-      end
-    end.flatten
+    parent ? deep_find_parent_logic(hash: self, key: key, parent: parent) : deep_find_logic(hash: self, key: key)
   end
 
   # Removed nil/empty from Hash
@@ -95,9 +88,10 @@ class Hash
   # @param value [String] the value to be set
   # @param error_on_missing [Boolean] error if key missing
   # @param error_on_uniqueness [Boolean] error if key not unique
+  # @param parent [String, Symbol, Array] the parent key for the key you want to update
   #
   # @return [Hash] the object with specified key updated.
-  def deep_update(key:, value:, error_on_missing: true, error_on_uniqueness: true)
+  def deep_update(key:, value:, error_on_missing: true, error_on_uniqueness: true, parent: nil)
     return self unless is_a? Hash
 
     if error_on_uniqueness && (deep_count(key: key) > 1)
@@ -117,15 +111,42 @@ class Hash
       return hash
     end
 
-    to_h do |k, v|
+    if parent
+      deep_update_parent_flow(hash: self, key: key, value: value, parent: parent)
+    else
+      deep_update_logic(hash: self, key: key, value: value)
+    end
+  end
+
+  # Removes specified key from nested hash.
+  #
+  # @param key [String] the key to remove.
+  # @param error_on_uniqueness [Boolean] error if key not unique
+  # @param parent [String, Symbol, Array] the parent key for the key you want to update
+  #
+  # @return [Hash] the object with specified key removed.
+  def deep_remove(key:, error_on_uniqueness: true, parent: nil)
+    return self unless is_a? Hash
+
+    if error_on_uniqueness && (deep_count(key: key) > 1)
+      raise KeyNotUniqueError, "Key: '#{key}' not unique | Pass 'error_on_uniqueness: false' if you do not care"
+    end
+
+    parent ? deep_remove_logic_parent(hash: self, key: key, parent: parent) : deep_remove_logic(hash: self, key: key)
+  end
+
+  private
+
+  def deep_update_logic(hash:, key:, value:)
+    hash.to_h do |k, v|
       if k.eql?(key)
         [k, value]
       elsif v.is_a?(Hash) && v.deep_contains?(key: key)
-        [k, v.deep_update(key: key, value: value, error_on_missing: error_on_missing, error_on_uniqueness: error_on_uniqueness)]
+        [k, deep_update_logic(key: key, value: value, hash: v)]
       elsif v.is_a?(Array)
         [k, v.map do |item|
           if item.is_a?(Hash) && item.deep_contains?(key: key)
-            item.deep_update(key: key, value: value, error_on_missing: error_on_missing, error_on_uniqueness: error_on_uniqueness)
+            deep_update_logic(key: key, value: value, hash: item)
           else
             item
           end
@@ -136,28 +157,50 @@ class Hash
     end
   end
 
-  # Removes specified key from nested hash.
-  #
-  # @param key [String] the key to remove.
-  #
-  # @return [Hash] the object with specified key removed.
-  def deep_remove(key:, error_on_uniqueness: true)
-    return self unless is_a? Hash
-
-    if error_on_uniqueness && (deep_count(key: key) > 1)
-      raise KeyNotUniqueError, "Key: '#{key}' not unique | Pass 'error_on_uniqueness: false' if you do not care"
-    end
-
-    # filter_map removes nil from Array
-    filter_map do |k, v|
-      if k.eql? key
-        nil
-      elsif v.is_a?(Hash)
-        [k, v.deep_remove(key: key, error_on_uniqueness: error_on_uniqueness)]
+  def deep_update_parent_flow(hash:, key:, value:, parent:)
+    hash.to_h do |k, v|
+      if (parent.is_a?(Array) && parent.include?(k)) || parent.eql?(k)
+        case v
+        when Hash
+          [k, deep_update_logic(hash: v, key: key, value: value)]
+        when Array
+          [k, v.map do |item|
+            if item.is_a?(Hash) && item.deep_contains?(key: key)
+              deep_update_logic(key: key, value: value, hash: item)
+            else
+              item
+            end
+          end]
+        else
+          [k, v]
+        end
+      elsif v.is_a?(Hash) && v.deep_contains?(key: key)
+        [k, deep_update_parent_flow(hash: v, key: key, value: value, parent: parent)]
       elsif v.is_a?(Array)
         [k, v.map do |item|
           if item.is_a?(Hash) && item.deep_contains?(key: key)
-            item.deep_remove(key: key, error_on_uniqueness: error_on_uniqueness)
+            deep_update_parent_flow(hash: item, key: key, value: value, parent: parent)
+          else
+            item
+          end
+        end]
+      else
+        [k, v]
+      end
+    end
+  end
+
+  def deep_remove_logic(hash:, key:)
+    # filter_map removes nil from Array
+    hash.filter_map do |k, v|
+      if k.eql? key
+        nil
+      elsif v.is_a?(Hash) && v.deep_contains?(key: key)
+        [k, deep_remove_logic(key: key, hash: v)]
+      elsif v.is_a?(Array)
+        [k, v.map do |item|
+          if item.is_a?(Hash) && item.deep_contains?(key: key)
+            deep_remove_logic(key: key, hash: item)
           else
             item
           end
@@ -166,5 +209,73 @@ class Hash
         [k, v]
       end
     end.to_h
+  end
+
+  def deep_remove_logic_parent(hash:, key:, parent:)
+    hash.filter_map do |k, v|
+      if (parent.is_a?(Array) && parent.include?(k)) || parent.eql?(k)
+        case v
+        when Hash
+          [k, deep_remove_logic(key: key, hash: v)]
+        when Array
+          [k, v.map do |item|
+            if item.is_a?(Hash) && item.deep_contains?(key: key)
+              deep_remove_logic(key: key, hash: item)
+            else
+              item
+            end
+          end]
+        else
+          [k, v]
+        end
+      elsif v.is_a?(Hash) && v.deep_contains?(key: key)
+        [k, deep_remove_logic_parent(hash: v, key: key, parent: parent)]
+      elsif v.is_a?(Array)
+        [k, v.map do |item|
+          if item.is_a?(Hash) && item.deep_contains?(key: key)
+            deep_remove_logic_parent(hash: item, key: key, parent: parent)
+          else
+            item
+          end
+        end]
+      else
+        [k, v]
+      end
+    end.to_h
+  end
+
+  def deep_find_logic(hash:, key:)
+    hash.filter_map do |k, v|
+      if k.eql? key
+        v
+      elsif v.is_a?(Hash)
+        deep_find_logic(hash: v, key: key)
+      elsif v.is_a?(Array)
+        [v.filter_map do |item|
+          deep_find_logic(hash: i, key: key) if item.is_a?(Hash) && item.deep_contains?(key: key)
+        end]
+      end
+    end.flatten
+  end
+
+  def deep_find_parent_logic(hash:, key:, parent:)
+    hash.filter_map do |k, v|
+      if (parent.is_a?(Array) && parent.include?(k)) || parent.eql?(k)
+        case v
+        when Hash
+          deep_find_logic(key: key, hash: v)
+        when Array
+          [v.filter_map do |item|
+            deep_find_logic(key: key, hash: item) if item.is_a?(Hash) && item.deep_contains?(key: key)
+          end]
+        end
+      elsif v.is_a?(Hash) && v.deep_contains?(key: key)
+        deep_find_parent_logic(hash: v, key: key, parent: parent)
+      elsif v.is_a?(Array)
+        [v.filter_map do |item|
+          deep_find_parent_logic(hash: item, key: key, parent: parent) if item.is_a?(Hash) && item.deep_contains?(key: key)
+        end]
+      end
+    end.flatten
   end
 end

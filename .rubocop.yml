@@ -21,7 +21,7 @@ Metrics/BlockLength:
   Enabled: false
 
 Metrics/ClassLength:
-  Max: 120
+  Max: 250
 
 Metrics/MethodLength:
   Max: 40
