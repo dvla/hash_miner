@@ -47,6 +47,7 @@ RSpec.describe HashMiner do
   end
 
   context 'deep_find' do
+
     it 'returns Array with values for keys found' do
       expect(@nasty_hash.deep_find(key: :foo)).to eq([nil])
       expect(@nasty_hash.deep_find(key: :duper)).to eq([
@@ -54,6 +55,7 @@ RSpec.describe HashMiner do
                                                            is: [{ duper: 'gross', random: nil }, 'a', 1, nil] }, :a
                                                        ])
       expect(@nasty_hash.deep_find(key: :deeply)).to eq(['nested hash', { nested: 'hash' }])
+      expect(@nasty_hash.deep_find(key: :nested)).to eq(['hash'])
     end
 
     it 'returns nil when key not found' do
