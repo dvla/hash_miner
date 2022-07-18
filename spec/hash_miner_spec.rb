@@ -47,7 +47,6 @@ RSpec.describe HashMiner do
   end
 
   context 'deep_find' do
-
     it 'returns Array with values for keys found' do
       expect(@nasty_hash.deep_find(key: :foo)).to eq([nil])
       expect(@nasty_hash.deep_find(key: :duper)).to eq([
