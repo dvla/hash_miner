@@ -252,7 +252,7 @@ class Hash
         deep_find_logic(hash: v, key: key)
       elsif v.is_a?(Array)
         [v.filter_map do |item|
-          deep_find_logic(hash: i, key: key) if item.is_a?(Hash) && item.deep_contains?(key: key)
+          deep_find_logic(hash: item, key: key) if item.is_a?(Hash) && item.deep_contains?(key: key)
         end]
       end
     end.flatten

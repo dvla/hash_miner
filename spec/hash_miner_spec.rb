@@ -54,6 +54,7 @@ RSpec.describe HashMiner do
                                                            is: [{ duper: 'gross', random: nil }, 'a', 1, nil] }, :a
                                                        ])
       expect(@nasty_hash.deep_find(key: :deeply)).to eq(['nested hash', { nested: 'hash' }])
+      expect(@nasty_hash.deep_find(key: :nested)).to eq(['hash'])
     end
 
     it 'returns nil when key not found' do
