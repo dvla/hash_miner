@@ -2,10 +2,15 @@
 
 RSpec.describe HashMiner do
   before(:example) do
-    @nasty_hash = { my: { super: { duper: { deeply: 'nested hash',
-                                            is: [{ duper: 'gross', random: nil }, 'a', 1, nil] } },
-                          hey: { duper: :a, blah: '', foo: [nil] },
-                          deeply: [{ nested: 'hash' }] } }
+    @nasty_hash = { my:
+                      { super:
+                          { duper:
+                              { deeply: 'nested hash', is: [{ duper: 'gross', random: nil }, 'a', 1, nil] } },
+                        hey: { duper: :a, blah: '', foo: [nil] },
+                        test: nil,
+                        not_true: { my_false_key: false },
+                        deeply: [{ nested: 'hash' }] },
+                    more_deeplyer: { test: nil } }
   end
 
   it 'has a version number' do
@@ -15,8 +20,9 @@ RSpec.describe HashMiner do
   context ' deep_contains?' do
     it 'returns true when key found' do
       expect(@nasty_hash.deep_contains?(key: :foo)).to be true
+      expect(@nasty_hash.deep_contains?(key: :my_false_key)).to be true
     end
-    it 'returns false when key found' do
+    it 'returns false when key not found' do
       expect(@nasty_hash.deep_contains?(key: [:foo])).to be false
       expect(@nasty_hash.deep_contains?(key: 'foo')).to be false
       expect(@nasty_hash.deep_contains?(key: nil)).to be false
@@ -32,9 +38,10 @@ RSpec.describe HashMiner do
     it 'returns the count when key found' do
       expect(@nasty_hash.deep_count(key: :foo)).to eq 1
       expect(@nasty_hash.deep_count(key: :duper)).to eq 3
+      expect(@nasty_hash.deep_count(key: :my_false_key)).to eq 1
     end
 
-    it 'returns 0 when key found' do
+    it 'returns 0 when key not found' do
       expect(@nasty_hash.deep_count(key: [:foo])).to eq 0
       expect(@nasty_hash.deep_count(key: 'foo')).to eq 0
       expect(@nasty_hash.deep_count(key: nil)).to eq 0
@@ -55,12 +62,16 @@ RSpec.describe HashMiner do
                                                        ])
       expect(@nasty_hash.deep_find(key: :deeply)).to eq(['nested hash', { nested: 'hash' }])
       expect(@nasty_hash.deep_find(key: :nested)).to eq(['hash'])
+      expect(@nasty_hash.deep_find(key: :not_true)).to eq([{ my_false_key: false }])
+      expect(@nasty_hash.deep_find(key: :my_false_key)).to eq([false])
     end
 
     it 'returns nil when key not found' do
       expect(@nasty_hash.deep_find(key: [:foo])).to be nil
       expect(@nasty_hash.deep_find(key: 'foo')).to be nil
       expect(@nasty_hash.deep_find(key: nil)).to be nil
+      expect(@nasty_hash.deep_find(key: 'does_not_exist')).to be nil
+
     end
 
     it 'returns nil when not a Hash object' do
@@ -71,12 +82,13 @@ RSpec.describe HashMiner do
     it 'can be scoped with a parent key' do
       expect(@nasty_hash.deep_find(key: :duper, parent: :hey)).to eq([:a])
       expect(@nasty_hash.deep_find(key: :duper, parent: [:hey])).to eq([:a])
+      expect(@nasty_hash.deep_find(key: :my_false_key, parent: :not_true)).to eq([false])
       expect(@nasty_hash.deep_find(key: :duper,
                                    parent: %i[hey
                                               super])).to eq([
-                                                               { deeply: 'nested hash',
-                                                                 is: [{ duper: 'gross', random: nil }, 'a', 1, nil] }, :a
-                                                             ])
+                                                                                                             { deeply: 'nested hash',
+                                                                                                               is: [{ duper: 'gross', random: nil }, 'a', 1, nil] }, :a
+                                                                                                           ])
     end
 
     it 'will only find keys if within a parent if given' do
@@ -100,6 +112,7 @@ RSpec.describe HashMiner do
                                                                        is: [{ duper: 'gross' }, 'a', 1,
                                                                             nil] } },
                                                      hey: { duper: :a, foo: [nil] },
+                                                     not_true: { my_false_key: false },
                                                      deeply: [{ nested: 'hash' }] } })
     end
   end
