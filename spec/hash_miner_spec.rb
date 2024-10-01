@@ -28,9 +28,9 @@ RSpec.describe HashMiner do
       expect(@nasty_hash.deep_contains?(key: nil)).to be false
     end
 
-    it 'returns nil when not a Hash object' do
-      expect(@nasty_hash.deep_contains?(key: nil, hash: [])).to be nil
-      expect(@nasty_hash.deep_contains?(key: nil, hash: 'a')).to be nil
+    it 'returns false when not a Hash object' do
+      expect(@nasty_hash.deep_contains?(key: nil, hash: [])).to be false
+      expect(@nasty_hash.deep_contains?(key: nil, hash: 'a')).to be false
     end
   end
 
@@ -71,7 +71,6 @@ RSpec.describe HashMiner do
       expect(@nasty_hash.deep_find(key: 'foo')).to be nil
       expect(@nasty_hash.deep_find(key: nil)).to be nil
       expect(@nasty_hash.deep_find(key: 'does_not_exist')).to be nil
-
     end
 
     it 'returns nil when not a Hash object' do
@@ -86,9 +85,11 @@ RSpec.describe HashMiner do
       expect(@nasty_hash.deep_find(key: :duper,
                                    parent: %i[hey
                                               super])).to eq([
-                                                                                                             { deeply: 'nested hash',
-                                                                                                               is: [{ duper: 'gross', random: nil }, 'a', 1, nil] }, :a
-                                                                                                           ])
+                                                               { deeply: 'nested hash',
+                                                                 is: [
+                                                                   { duper: 'gross', random: nil }, 'a', 1, nil
+                                                                 ] }, :a
+                                                             ])
     end
 
     it 'will only find keys if within a parent if given' do

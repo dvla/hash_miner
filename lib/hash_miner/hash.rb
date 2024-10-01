@@ -11,7 +11,7 @@ class Hash
   #
   # @return [Boolean] whether the key was found
   def deep_contains?(key:, hash: self)
-    return nil unless hash.is_a? Hash
+    return false unless hash.is_a? Hash
     return true if hash.include? key
 
     hash.filter_map do |_k, v|
