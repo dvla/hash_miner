@@ -11,7 +11,7 @@ class Hash
   #
   # @return [Boolean] whether the key was found
   def deep_contains?(key:, hash: self)
-    return nil unless hash.is_a? Hash
+    return false unless hash.is_a? Hash
     return true if hash.include? key
 
     hash.filter_map do |_k, v|
@@ -245,37 +245,41 @@ class Hash
   end
 
   def deep_find_logic(hash:, key:)
-    hash.filter_map do |k, v|
+    results = hash.map do |k, v|
       if k.eql? key
         v
       elsif v.is_a?(Hash)
         deep_find_logic(hash: v, key: key)
       elsif v.is_a?(Array)
-        [v.filter_map do |item|
+        [v.map do |item|
           deep_find_logic(hash: item, key: key) if item.is_a?(Hash) && item.deep_contains?(key: key)
         end]
       end
     end.flatten
+
+    results.all?(nil) ? results.uniq : results.compact
   end
 
   def deep_find_parent_logic(hash:, key:, parent:)
-    hash.filter_map do |k, v|
+    results = hash.map do |k, v|
       if (parent.is_a?(Array) && parent.include?(k)) || parent.eql?(k)
         case v
         when Hash
           deep_find_logic(key: key, hash: v)
         when Array
-          [v.filter_map do |item|
+          [v.map do |item|
             deep_find_logic(key: key, hash: item) if item.is_a?(Hash) && item.deep_contains?(key: key)
           end]
         end
       elsif v.is_a?(Hash) && v.deep_contains?(key: key)
         deep_find_parent_logic(hash: v, key: key, parent: parent)
       elsif v.is_a?(Array)
-        [v.filter_map do |item|
+        [v.map do |item|
           deep_find_parent_logic(hash: item, key: key, parent: parent) if item.is_a?(Hash) && item.deep_contains?(key: key)
         end]
       end
     end.flatten
+
+    results.all?(nil) ? results.uniq : results.compact
   end
 end
