@@ -4,7 +4,6 @@ require_relative 'hash_miner/version'
 require_relative 'hash_miner/hash'
 require_relative 'hash_miner/errors'
 
-require 'pry'
 require 'logger'
 
 # HashMiner gem
